@@ -1,18 +1,17 @@
+/*! subtomic.js v0.1 | (c) 2014 Metric.io | Thomas Marks */
 (function (root, factory) {
   if (typeof define === 'function' && define.amd) {
-    define(factory);
+    define(factory(root));
   } else if (typeof exports === 'object') {
     module.exports = factory;
   } else {
-    root.atomic = factory(root);
+    root.subatomic = factory(root);
   }
 })(this, function (root) {
-
   'use strict';
+  var exports, callbacks;
 
-  var exports = {};
-
-  var parse = function (req) {
+  function parse(req) {
     var result;
     try {
       result = JSON.parse(req.responseText);
@@ -20,20 +19,45 @@
       result = req.responseText;
     }
     return [result, req];
-  };
+  }
 
-  var xhr = function (type, url, data) {
-    var methods = {
-      success: function () {},
-      error: function () {}
+  function xhr(options) {
+    var type,
+        url,
+        data,
+        methods,
+        XHR,
+        request,
+        MSObj;
+
+    type = options.type;
+    url = options.url;
+    data = options.data;
+
+    methods = {
+      success: options.success || function () {},
+      error: options.error || function () {}
     };
-    var XHR = root.XMLHttpRequest || ActiveXObject;
-    var request = new XHR('MSXML2.XMLHTTP.3.0');
+
+    XHR = root.XMLHttpRequest  || ActiveXObject;
+    MSObj = ['.6.0', ''];
+    for(var i = 0; i < MSObj.length; i++) {
+      try{
+        request = new XHR('MSXML2.XMLHTTP' + MSObj[i]);
+        break;
+      }catch(e){}
+    }
+    if(!request) {
+      throw new Error('XMLHttpRequest not supported in this browser');
+    }
+    
     request.open(type, url, true);
-    request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+    if(data) {
+        request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+    }
     request.onreadystatechange = function () {
       if (request.readyState === 4) {
-        if (request.status >= 200 && request.status < 300) {
+        if (request.status === 200) {
           methods.success.apply(methods, parse(request));
         } else {
           methods.error.apply(methods, parse(request));
@@ -41,7 +65,7 @@
       }
     };
     request.send(data);
-    var callbacks = {
+    callbacks = {
       success: function (callback) {
         methods.success = callback;
         return callbacks;
@@ -53,22 +77,17 @@
     };
 
     return callbacks;
-  };
+  }
 
-  exports['get'] = function (src) {
-    return xhr('GET', src);
-  };
-
-  exports['put'] = function (url, data) {
-    return xhr('PUT', url, data);
-  };
-
-  exports['post'] = function (url, data) {
-    return xhr('POST', url, data);
-  };
-
-  exports['delete'] = function (url) {
-    return xhr('DELETE', url);
+  exports = {
+    get: function (options) {
+      options.type = 'GET';
+      return xhr(options);
+    },
+    post: function (options) {
+      options.type = 'POST';
+      return xhr(options);
+    }
   };
 
   return exports;
