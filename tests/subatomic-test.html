@@ -1,0 +1,174 @@
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <title>subatomic.js tests</title>
+        <link rel="stylesheet" href="./mocha/mocha.css"/>
+    </head>
+  <body>
+    <script src="./mocha/mocha.js"></script>
+    <script src="../src/subatomic.js"></script>
+    <div id="mocha"></div>
+    <script>
+        mocha.setup('tdd');
+    </script>
+    <script>
+        suite('tests.js.subatomic', function () {
+
+            test('sucessful get request calls options success callback', function (done) {
+
+                var success_func = function() {
+                    done();
+                };
+                var error_func = function() {
+                    mocha.throwError('Should not have called error callback');
+                    done();
+                };
+
+                var time = new Date();
+                var timestamp = '' + time.getSeconds() + time.getMilliseconds();
+                subatomic.get({
+                    url: '//httpbin.org/get' + '?now=' + timestamp,
+                    success: success_func
+                }).error(error_func);
+            });
+
+            test('sucessful get request calls appended success callback', function (done) {
+
+                var success_func = function() {
+                    done();
+                };
+                var error_func = function() {
+                    mocha.throwError('Should not have called error callback');
+                    done();
+                };
+
+                var time = new Date();
+                var timestamp = '' + time.getSeconds() + time.getMilliseconds();
+                subatomic.get({
+                    url: '//httpbin.org/get' + '?now=' + timestamp,
+                    success: function() {}
+                }).success(success_func).error(error_func);
+            });
+
+            test('second get request calls success callback', function (done) {
+
+                var success_func = function() {
+                    done();
+                };
+                var error_func = function() {
+                    mocha.throwError('Should not have called error callback');
+                    done();
+                };
+
+                // unfortunately these now params are needed to stop early ie
+                // caching ie get requests
+                var time = new Date();
+                var timestamp = '' + time.getSeconds() + time.getMilliseconds();
+                subatomic.get({url: '//httpbin.org/get' + '?now=' + timestamp })
+                    .success( function() {
+                        var time = new Date();
+                        var timestamp = '' + time.getSeconds() + time.getMilliseconds();
+                        subatomic.get({
+                            url: '//httpbin.org/get' + '?now=' + timestamp
+                        })
+                        .success(success_func)
+                        .error(error_func);
+
+                    });
+            });
+
+            test('failed get request calls options error callback', function (done) {
+
+                var success_func = function() {
+                    mocha.throwError('Should not have called success callback');
+                    done();
+                };
+                var error_func = function() {
+                    done();
+                };
+
+                subatomic.get({
+                    url: '//httpbin.org/status/404',
+                    error: error_func
+                })
+                .success(success_func);
+            });
+
+            test('failed get request calls error function', function (done) {
+
+                var success_func = function() {
+                    mocha.throwError('Should not have called success callback');
+                    done();
+                };
+                var error_func = function() {
+                    done();
+                };
+
+                subatomic.get({
+                    url: '//httpbin.org/status/404',
+                    error: function() {}
+                })
+                .success(success_func)
+                .error(error_func);
+            });
+
+            test('successful post calls success callback', function (done) {
+                var msg = 'one=testing';
+                var success_func = function(response) {
+                    var expected_response = {
+                        form: {
+                            one: 'testing'
+                        }
+                    };
+                    window.tmp = {};
+                    window.tmp.response = response;
+                    window.tmp.exresponse = expected_response;
+
+                    if(window.JSON) {
+                        if(response.form.one != expected_response.form.one) {
+                            mocha.throwError('Expected response: ' + expected_response + ' but got: ' + response);
+                        }
+                    } else {
+                        if( !response.match('testing' ) ) {
+                            mocha.throwError('Expected response: ' + expected_response + ' but got: ' + response);
+                        }
+                    }
+                    done();
+                };
+                var error_func = function() {
+                    mocha.throwError('Should not have called error callback');
+                    done();
+                };
+
+                subatomic.post({
+                    url: '//httpbin.org/post',
+                    data: msg
+                }).success(success_func)
+                  .error(error_func);
+
+            });
+
+            test('failed post calls error callback', function (done) {
+                var msg = 'one=test&two=test';
+                var success_func = function(response) {
+                    mocha.throwError('Should not have called success callback');
+                    done();
+                };
+                var error_func = function() {
+                    done();
+                };
+
+                subatomic.post({
+                    url: '//httpbin.org/status/404',
+                    data: msg
+                }).success(success_func)
+                  .error(error_func);
+
+            });
+
+        });
+    </script>
+    <script>
+        mocha.run();
+    </script>
+</html>
