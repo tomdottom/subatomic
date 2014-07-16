@@ -9,7 +9,10 @@
     <script src="../src/subatomic.js"></script>
     <div id="mocha"></div>
     <script>
-        mocha.setup('tdd');
+    mocha.setup({
+        ui:'tdd',
+        timeout: 10000
+    });
     </script>
     <script>
         suite('tests.js.subatomic', function () {
